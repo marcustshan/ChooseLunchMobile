@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:localstorage/localstorage.dart';
 
 import 'screen_login.dart';
 

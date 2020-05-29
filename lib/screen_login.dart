@@ -1,7 +1,7 @@
 import 'package:chooselunch/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:localstorage/localstorage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import 'dart:convert';
@@ -13,7 +13,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
 
-  final LocalStorage storage = new LocalStorage('ChooseLunchLocalStorage');
+  SharedPreferences _prefs;
 
   final TextEditingController _idController = new TextEditingController();
   final TextEditingController _passwordController = new TextEditingController();
@@ -22,6 +22,12 @@ class _LoginPageState extends State<LoginPage> {
   bool _remember = false;
 
   _LoginPageState() {}
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRemember();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,20 +125,33 @@ class _LoginPageState extends State<LoginPage> {
       headers: {'Content-Type': "application/json"},
     );
 
-    print('아 뭔디');
-    print(response.body);
-
     // ignore: unrelated_type_equality_checks
     if(response.body == 'false') {
       _showDialog();
     } else {
       final UserModel _user = UserModel.fromJson(jsonDecode(response.body));
       if(_remember) {
-        storage.setItem('ChooseLunchRembmerToken', _user.token);
-        storage.setItem('ChooseLunchRembmerId', _user.id);
       }
-      print('logged user : $_user');
     }
+  }
+
+  void _checkRemember() async {
+    _prefs = await SharedPreferences.getInstance();
+    String token = _prefs.getString('ChooseLunchRememberToken');
+    String id = _prefs.getString('ChooseLunchRememberId');
+    setState(() {
+      if(token != null && id != null && token.isNotEmpty && id.isNotEmpty) {
+        Fluttertoast.showToast(
+            msg: "로그인 실패 !!",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+            fontSize: 16.0
+        );
+      }
+    });
   }
 
   void _onRememberChanged(bool newValue) => setState(() {

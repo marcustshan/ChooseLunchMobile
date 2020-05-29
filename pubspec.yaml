@@ -36,7 +36,7 @@ dev_dependencies:
 
   scoped_model: ^1.0.1
 
-  localstorage: ^3.0.0
+  shared_preferences: ^0.5.3+2
 
   fluttertoast: ^4.0.1
 
