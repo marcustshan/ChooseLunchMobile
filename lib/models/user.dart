@@ -1,6 +1,4 @@
-import 'package:scoped_model/scoped_model.dart';
-
-class UserModel extends Model {
+class UserModel {
   int _user_seq;
   String _id, _name, _smoker_yn, _manager_yn, _token;
 

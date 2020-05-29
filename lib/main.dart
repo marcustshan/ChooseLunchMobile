@@ -1,9 +1,9 @@
+import 'package:chooselunch/models/user.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-
-import 'screen_login.dart';
+import 'package:chooselunch/routes/routes.dart';
 
 void main() {
+  var _user = UserModel();
   runApp(ChooseLunch());
 }
 
@@ -16,35 +16,7 @@ class ChooseLunch extends StatelessWidget {
       theme: new ThemeData(
           primarySwatch: Colors.deepPurple
       ),
-      home: new LoginPage(),
+      routes: routes,
     );
-    /*
-    return MaterialApp(
-      home: DefaultTabController(
-        length: 4,
-        child: Scaffold(
-          appBar: AppBar(
-            bottom: TabBar(
-              tabs: [
-                Tab(icon: Icon(Icons.restaurant_menu)),
-                Tab(icon: Icon(Icons.chat)),
-                Tab(icon: Icon(Icons.local_drink)),
-                Tab(icon: Icon(Icons.settings)),
-              ],
-            ),
-            title: Text('Choose Lunch'),
-          ),
-          body: TabBarView(
-            children: [
-              Icon(Icons.restaurant_menu),
-              Icon(Icons.chat),
-              Icon(Icons.local_drink),
-              Icon(Icons.settings),
-            ],
-          ),
-        ),
-      ),
-    );
-     */
   }
 }

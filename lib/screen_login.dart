@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+import 'package:chooselunch/routes/routes.dart';
+
 import 'dart:convert';
 
 class LoginPage extends StatefulWidget {
@@ -12,8 +14,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
-  SharedPreferences _prefs;
 
   final TextEditingController _idController = new TextEditingController();
   final TextEditingController _passwordController = new TextEditingController();
@@ -26,11 +26,12 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _checkRemember();
   }
 
   @override
   Widget build(BuildContext context) {
+    _checkRemember();
+
     return new Scaffold(
       appBar: _buildBar(context),
       body: new Container(
@@ -129,20 +130,29 @@ class _LoginPageState extends State<LoginPage> {
     if(response.body == 'false') {
       _showDialog();
     } else {
+      // 로그인 성공
       final UserModel _user = UserModel.fromJson(jsonDecode(response.body));
       if(_remember) {
+        final SharedPreferences _prefs = await SharedPreferences.getInstance();
+        _prefs.setString('ChooseLunchRememberToken', _user.token);
+        _prefs.setString('ChooseLunchRememberId', _user.id);
       }
+      
+      Navigator.pushNamed(context, '/main');
     }
   }
 
   void _checkRemember() async {
-    _prefs = await SharedPreferences.getInstance();
+    final SharedPreferences _prefs = await SharedPreferences.getInstance();
     String token = _prefs.getString('ChooseLunchRememberToken');
     String id = _prefs.getString('ChooseLunchRememberId');
+
     setState(() {
       if(token != null && id != null && token.isNotEmpty && id.isNotEmpty) {
+        _id = id;
+        _remember = true;
         Fluttertoast.showToast(
-            msg: "로그인 실패 !!",
+            msg: '오 저장되어있구먼 - id : $id',
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.CENTER,
             timeInSecForIosWeb: 1,
