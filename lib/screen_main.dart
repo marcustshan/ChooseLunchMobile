@@ -12,10 +12,10 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: new ThemeData(primarySwatch: Colors.deepPurple),
       home: DefaultTabController(
         length: 3,
         child: Scaffold(
