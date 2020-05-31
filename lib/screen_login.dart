@@ -5,8 +5,8 @@ import 'package:chooselunch/screen_main.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:double_back_to_close/double_back_to_close.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:chooselunch/utils/network_util.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,11 +14,15 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  DateTime currentBackPressTime;
+
   final TextEditingController _idController = new TextEditingController();
   final TextEditingController _passwordController = new TextEditingController();
   String _id = "";
   String _password = "";
   bool _remember = false;
+
+  User _user;
 
   _LoginPageState() {}
 
@@ -30,19 +34,33 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold(
-      appBar: _buildBar(context),
-      body: new Container(
-        padding: EdgeInsets.only(left: 30.0, right: 30.0, top: 80.0),
-        child: new Column(
-          children: <Widget>[
-            _buildTextFields(),
-            _buildCheckbox(),
-            _buildButtons()
-          ],
+    return WillPopScope(
+      onWillPop: _onBackPressed,
+      child: new Scaffold(
+        appBar: _buildBar(context),
+        body: new Container(
+          padding: EdgeInsets.only(left: 30.0, right: 30.0, top: 80.0),
+          child: new Column(
+            children: <Widget>[
+              _buildTextFields(),
+              _buildCheckbox(),
+              _buildButtons()
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<bool> _onBackPressed() {
+    DateTime now = DateTime.now();
+    if (currentBackPressTime == null ||
+        now.difference(currentBackPressTime) > Duration(seconds: 2)) {
+      currentBackPressTime = now;
+      Fluttertoast.showToast(msg: '한번 더 누르시면 앱이 종료됩니다.');
+      return Future.value(false);
+    }
+    return Future.value(true);
   }
 
   Widget _buildBar(BuildContext context) {
@@ -59,7 +77,6 @@ class _LoginPageState extends State<LoginPage> {
         children: <Widget>[
           new Container(
             child: new TextField(
-              autofocus: true,
               controller: _idController,
               decoration: new InputDecoration(labelText: 'ID'),
             ),
@@ -83,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
         children: <Widget>[
           new RaisedButton(
             child: new Text('Login'),
-            onPressed: _loginPressed,
+            onPressed: _onLoginPressed,
           )
         ],
       ),
@@ -106,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _loginByToken(String token) async {
+  void _fnLoginByToken(String token) async {
     final response = await http.post(
       'http://cl.byulsoft.com/api/loginByToken',
       body: jsonEncode(
@@ -115,28 +132,29 @@ class _LoginPageState extends State<LoginPage> {
       headers: {'Content-Type': "application/json", 'jwt-header': token},
     );
 
+    JsonDecoder _decoder = new JsonDecoder();
+
     // ignore: unrelated_type_equality_checks
     if (response.body == 'false') {
-      _showDialog();
+      _fnShowDialog();
     } else {
       // 로그인 성공
-      final UserModel _user = UserModel.fromJson(jsonDecode(response.body));
+      _user = new User.map(_decoder.convert(response.body));
       if (_remember) {
         SharedPreferences _prefs = await SharedPreferences.getInstance();
         _prefs.setString('ChooseLunchRememberToken', _user.token);
         _prefs.setString('ChooseLunchRememberId', _user.id);
       }
 
-      Navigator.pushReplacement(
+      Navigator.pushReplacementNamed(
         context,
-        new MaterialPageRoute(
-          builder: (context) => new MainPage(),
-        ),
+        '/main',
+        arguments: _user
       );
     }
   }
 
-  Future<void> _loginPressed() async {
+  Future<void> _onLoginPressed() async {
     _id = _idController.text;
     _password = _passwordController.text;
     final response = await http.post(
@@ -146,13 +164,15 @@ class _LoginPageState extends State<LoginPage> {
       ),
       headers: {'Content-Type': "application/json"},
     );
+    
+    JsonDecoder _decoder = new JsonDecoder();
 
     // ignore: unrelated_type_equality_checks
     if (response.body == 'false') {
-      _showDialog();
+      _fnShowDialog();
     } else {
       // 로그인 성공
-      final UserModel _user = UserModel.fromJson(jsonDecode(response.body));
+      _user = new User.map(_decoder.convert(response.body));
       if (_remember) {
         SharedPreferences _prefs = await SharedPreferences.getInstance();
         _prefs.setString('ChooseLunchRememberToken', _user.token);
@@ -170,16 +190,18 @@ class _LoginPageState extends State<LoginPage> {
 
   void _checkRemember() async {
     final SharedPreferences _prefs = await SharedPreferences.getInstance();
-    String token = _prefs.getString('ChooseLunchRememberToken');
-    String id = _prefs.getString('ChooseLunchRememberId');
+    final String token = _prefs.getString('ChooseLunchRememberToken');
+    final String id = _prefs.getString('ChooseLunchRememberId');
 
     if (token != null && id != null && token.isNotEmpty && id.isNotEmpty) {
       setState(() {
         _id = id;
         _remember = true;
 
-        _loginByToken(token);
+        _fnLoginByToken(token);
       });
+
+      return;
     }
   }
 
@@ -187,7 +209,7 @@ class _LoginPageState extends State<LoginPage> {
         _remember = newValue;
       });
 
-  void _showDialog() {
+  void _fnShowDialog() {
     /*
     Fluttertoast.showToast(
         msg: "로그인 실패 !!",
