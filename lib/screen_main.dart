@@ -1,12 +1,12 @@
-import 'dart:convert';
 import 'dart:core';
+import 'dart:convert';
 
-import 'package:chooselunch/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:grouped_list/grouped_list.dart';
-
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+import 'package:chooselunch/models/user.dart';
 import 'package:chooselunch/utils/network_util.dart';
 
 class MainPage extends StatefulWidget {
@@ -16,67 +16,62 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   DateTime currentBackPressTime;
-  
+
   NetworkUtil _http = new NetworkUtil();
   IO.Socket _socket;
 
   User _user;
 
-  List _restaurants = [];
-  List _messages = [];
-  List _lunch_choices = [];
-  List _coffee_choices = [];
+  List<dynamic> _restaurants = [];
+  List<dynamic> _messages = [];
+  List<dynamic> _lunch_choices = [];
+  List<dynamic> _coffee_choices = [];
+  List<dynamic> _coffees = [];
 
   @override
   void initState() {
     super.initState();
-  }
 
-  void _fnGetRestaurants() async {
-    print('식당 조회 시작');
-    var restaurants = await _http.get('/getRestaurants');
-    _restaurants = restaurants;
-    print('식당 조회 종료');
-  }
+    _fnGetRestaurants();
+    _fnGetTodayLunchChoices();
+    _fnGetTodayCoffeeChoices();
+    _fnGetTodayMessages();
+    _fnGetCoffees();
 
-  void _fnGetTodayLunchChoices() async {
-    print('점심 선택 조회 시작');
-    var lunch_choices = await _http.get('/getTodayChoices');
-    _lunch_choices = lunch_choices;
-    print('점심 선택 조회 종료');
-  }
-
-  void _fnGetTodayCoffeeChoices() async {
-    print('커피 선택 조회 시작');
-    var coffee_choices = await _http.get('/getTodayCoffeeChoices');
-    _coffee_choices = coffee_choices;
-    print('커피 선택 조회 종료');
-  }
-
-  void _fnGetTodayMessages() async {
-    print('채팅 조회 시작');
-    var messages = await _http.get('/getTodayMessages');
-    _messages = messages;
-    print('채팅 조회 종료');
-  }
-
-  void _fnInitSocket() {
-    _socket = IO.io('http://cl.byulsoft.com:8090', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
+    /*
+    _http.get('/getRestaurants').then((restaurants) {
+      setState(() {
+        _restaurants = restaurants;
+      });
     });
-
-    _socket.on('receiveChat', (data) {
-      print('와우 채팅 왔는가보다');
+    _http.get('/getTodayChoices').then((lunch_choices) {
+      setState(() {
+        _lunch_choices = lunch_choices;
+      });
     });
-    _socket.on('chosen', (data) {
-      print('와우 누가 선택 했나봐');
+    _http.get('/getTodayCoffeeChoices').then((coffee_choices) {
+      setState(() {
+        _coffee_choices = coffee_choices;
+      });
     });
-    _socket.on('userschanged', (data) {
-      print('와우 누가 접속 했나봐');
+    _http.get('/getTodayMessages').then((messages) {
+      setState(() {
+        _messages = messages;
+      });
     });
-
-    _socket.emit('connected', _user.toMap());
+    _http.post('https://www.banapresso.com/query',
+      {'Content-Type': "application/json"},
+      jsonEncode({
+        'ws': "fprocess",
+        'query': "MWRQ85AQ0V9VBEJ3GMUJ",
+        'params': {'nFCode': 200000}
+      })
+    ).then((coffees) {
+      setState(() {
+        _coffees = coffees.rows;
+      });
+    });
+     */
   }
 
   @override
@@ -84,12 +79,6 @@ class _MainPageState extends State<MainPage> {
     _user = ModalRoute.of(context).settings.arguments;
 
     _fnInitSocket();
-    // _fnGetRestaurants();
-    _fnGetTodayLunchChoices();
-    _fnGetTodayCoffeeChoices();
-    _fnGetTodayMessages();
-
-    print('종료 하고 온거니?');
 
     Widget main_widget = WillPopScope(
       onWillPop: _onBackPressed,
@@ -146,20 +135,153 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildLunchList() {
-    print('뭐지?');
+    if(_restaurants == null || _restaurants.isEmpty) {
+      return new Container();
+    }
 
+    return new GroupedListView(
+        elements: _restaurants,
+        groupBy: (element) => element['category_name'],
+        useStickyGroupSeparators: true,
+        groupSeparatorBuilder: (value) => Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            value,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          )
+        ),
+        itemBuilder: (c, element) {
+          return Card(
+            elevation: 8.0,
+            margin: new EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+            child: Container(
+              child: ListTile(
+                contentPadding:
+                EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                leading: Icon(Icons.account_circle),
+                title: Text(element['name']),
+                trailing: Icon(Icons.arrow_forward),
+              ),
+            ),
+          );
+        },
+        order: GroupedListOrder.ASC
+    );
+  }
+
+  Widget _buildCoffeeList() {
+    if(_coffees == null || _coffees.isEmpty) {
+      return new Container();
+    }
+
+    return new GroupedListView(
+        elements: _coffees,
+        groupBy: (element) => element['category_name'],
+        useStickyGroupSeparators: true,
+        groupSeparatorBuilder: (value) => Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            )
+        ),
+        itemBuilder: (c, element) {
+          return Card(
+            elevation: 8.0,
+            margin: new EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+            child: Container(
+              child: ListTile(
+                contentPadding:
+                EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                leading: Icon(Icons.account_circle),
+                title: Text(element['name']),
+                trailing: Icon(Icons.arrow_forward),
+              ),
+            ),
+          );
+        },
+        order: GroupedListOrder.ASC
+    );
+  }
+
+  void _fnGetRestaurants() async {
     print('식당 조회 시작');
-    _http.get('/getRestaurants').then((restaurants) {
+    List<dynamic> restaurants = await _http.get('/getRestaurants');
+    setState(() {
       _restaurants = restaurants;
-      return new GroupedListView(
-          elements: _lunch_choices,
-          groupBy: (element) => element['category_name'],
-          itemBuilder: (context, element) => Text(element['name']),
-          order: GroupedListOrder.ASC
-      );
     });
     print('식당 조회 종료');
+  }
 
+  void _fnGetTodayLunchChoices() async {
+    print('점심 선택 조회 시작');
+    List<dynamic> lunch_choices = await _http.get('/getTodayChoices');
+    setState(() {
+      _lunch_choices = lunch_choices;
+    });
+    print('점심 선택 조회 종료');
+  }
 
+  void _fnGetTodayCoffeeChoices() async {
+    print('커피 선택 조회 시작');
+    List<dynamic> coffee_choices = await _http.get('/getTodayCoffeeChoices');
+    setState(() {
+      _coffee_choices = coffee_choices;
+    });
+    print('커피 선택 조회 종료');
+  }
+
+  void _fnGetTodayMessages() async {
+    print('채팅 조회 시작');
+    List<dynamic> messages = await _http.get('/getTodayMessages');
+    setState(() {
+      _messages = messages;
+    });
+    print('채팅 조회 종료');
+  }
+
+  void _fnGetCoffees() async {
+    print('커피 조회 시작');
+
+    dynamic coffees = await _http.post('https://www.banapresso.com/query',
+        {'Content-Type': "application/json"},
+        jsonEncode({
+          'ws': "fprocess",
+          'query': "MWRQ85AQ0V9VBEJ3GMUJ",
+          'params': {'nFCode': 200000}
+        })
+    );
+
+    setState(() {
+      _coffees = coffees['rows'];
+    });
+
+    print('커피 조회 종료');
+  }
+
+  void _fnInitSocket() {
+    if(_socket != null && _socket.connected) {
+      return;
+    }
+
+    _socket = IO.io('http://cl.byulsoft.com', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': true,
+    });
+
+    _socket.off('receiveChat');
+    _socket.on('receiveChat', (data) {
+      print('와우 채팅 왔는가보다');
+    });
+    _socket.off('chosen');
+    _socket.on('chosen', (data) {
+      print('와우 누가 선택 했나봐');
+    });
+    _socket.off('usersChanged');
+    _socket.on('usersChanged', (data) {
+      print('와우 누가 접속 했나봐');
+    });
+
+    _socket.emit('connected', _user.toMap());
   }
 }

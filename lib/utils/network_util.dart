@@ -23,9 +23,12 @@ class NetworkUtil {
     });
   }
 
-  Future<dynamic> post(String url, {Map headers, body, encoding}) {
+  Future<dynamic> post(String url, headers, body) {
+    if(!url.startsWith('http')) {
+      url = BASE_URL + url;
+    }
     return http
-        .post(BASE_URL + url, body: body, headers: headers, encoding: encoding)
+        .post(url, body: body, headers: headers, encoding: Encoding.getByName('UTF-8'))
         .then((http.Response response) {
       final String res = response.body;
       final int statusCode = response.statusCode;

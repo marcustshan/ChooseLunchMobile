@@ -44,6 +44,8 @@ dev_dependencies:
 
   socket_io_client: 0.9.10
 
+  progress_dialog: ^1.2.4
+
   flutter_test:
     sdk: flutter
 
